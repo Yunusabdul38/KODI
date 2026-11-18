@@ -91,7 +91,7 @@ async function Result({ searchParams }: { searchParams: PageProps<"/check">["sea
           <p className="mt-4 text-[0.95rem] text-ink-2">
             {unit.title} in {unit.area} · {formatNaira(unit.annualRentNgn)} a year · {landlord.name}
           </p>
-          <VerifiedBadge verified className="mt-2" />
+          <VerifiedBadge verified className="mt-2 flex w-fit" />
           {status === "available" && (
             <Link href={`/homes/${unit.code}`} className="btn btn-primary mt-5">
               View and pay safely <ArrowRightIcon className="size-4" />
