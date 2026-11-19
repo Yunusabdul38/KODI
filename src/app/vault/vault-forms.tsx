@@ -6,6 +6,7 @@ import { ErrorFocus, FormField, invalid, keepValues, MoneyInput } from "@/compon
 import { InvoicePanel, type Network } from "@/components/invoice-panel";
 import { Input } from "@/components/ui/input";
 import { PinInput } from "@/components/pin-input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatNaira } from "@/lib/format";
 import { chooseVaultPin, createTopUp, createVault, enterVaultPin, type PinState, type TopUpState, type VaultFormState } from "./actions";
@@ -63,12 +64,14 @@ export function StartVaultForm({ unitCode, minDate, maxDate, fromDeposit }: { un
             <p className="text-[0.88rem] text-ink-2">Your private vault page opens only with this PIN, even if someone else gets the link.</p>
           </div>
         </div>
-        <FormField label="Choose a 6-digit PIN" htmlFor="pin-0" error={e.pin}>
-          <PinInput id="pin" name="pin" newPin invalid={Boolean(e.pin)} />
-        </FormField>
-        <FormField label="Type it again" htmlFor="pinConfirm-0" error={e.pinConfirm}>
-          <PinInput id="pinConfirm" name="pinConfirm" newPin invalid={Boolean(e.pinConfirm)} />
-        </FormField>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <FormField label="Choose a 6-digit PIN" htmlFor="pin" error={e.pin}>
+            <PinField id="pin" name="pin" {...invalid("pin", e.pin)} />
+          </FormField>
+          <FormField label="Type it again" htmlFor="pinConfirm" error={e.pinConfirm}>
+            <PinField id="pinConfirm" name="pinConfirm" {...invalid("pinConfirm", e.pinConfirm)} />
+          </FormField>
+        </div>
       </div>
       <p className="rounded-2xl bg-paper-2 px-4 py-3 text-[0.9rem] text-ink-2">
         {fromDeposit
@@ -137,6 +140,25 @@ export function TopUpForm({
         {pending ? "Creating payment request…" : `Add ${Number(amount) ? formatNaira(Number(amount)) : "money"}`}
       </button>
     </form>
+  );
+}
+
+/** One field for a new 6-digit PIN: digits only, shown as dots unless revealed. */
+function PinField(props: { id: string; name: string } & Record<string, unknown>) {
+  return (
+    <PasswordInput
+      {...props}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      maxLength={6}
+      autoComplete="new-password"
+      placeholder="••••••"
+      className="font-mono text-[1.05rem] tracking-[0.35em] placeholder:tracking-[0.35em]"
+      onInput={(ev) => {
+        const el = ev.currentTarget;
+        el.value = el.value.replace(/\D/g, "").slice(0, 6);
+      }}
+    />
   );
 }
 
