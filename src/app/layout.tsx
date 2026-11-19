@@ -9,7 +9,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "Kodi · No keys, no payout", template: "%s · Kodi" },
   description:
-    "Rent in Lagos without fear. Pay your deposit into Lightning escrow, the unit locks so nobody else can pay for it, and the landlord is paid only when you get the keys.",
+    "Rent in Lagos without fear. Pay your deposit into Lightning escrow: the home locks so nobody else can pay for it, and the landlord is paid only when you get the keys.",
 };
 
 export const viewport: Viewport = {

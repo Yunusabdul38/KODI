@@ -103,7 +103,7 @@ export function DepositForm({
               <RadioGroupItem value="test_wallet" className="mt-0.5" />
               <span>
                 <span className="block font-medium">Tenant test wallet</span>
-                <span className="block text-[0.88rem] text-ink-3">Test network only: a wallet made by `npm run wallet`.</span>
+                <span className="block text-[0.88rem] text-ink-3">Test network only: Kodi&apos;s stand-in tenant wallet, so you can watch a refund arrive.</span>
               </span>
             </label>
           )}

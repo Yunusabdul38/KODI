@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { FormField, keepValues } from "@/components/form-controls";
+import { ReviewerCard } from "@/components/reviewer-card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,14 +38,10 @@ export function AdminSignIn({ demo, reviewerPassword }: { demo: boolean; reviewe
       <button className="btn btn-primary w-full" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
       {demo && <p className="text-[0.85rem] text-ink-3">Local default password: kodi-admin</p>}
       {reviewerPassword && (
-        <div className="rounded-[20px] border border-amber/30 bg-amber-soft p-5">
-          <p className="text-[0.82rem] font-semibold uppercase tracking-wide text-amber">For hackathon reviewers · test network only</p>
-          <p className="mt-2 text-[0.95rem] text-ink-2">This deploy uses Mutinynet test coins, so the arbiter password is shared here for judging.</p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <code className="rounded-lg bg-white px-3 py-2 font-mono text-[0.92rem]">{reviewerPassword}</code>
-            <button type="button" className="btn btn-ghost !min-h-10 !py-1.5 text-[0.9rem]" onClick={() => setValue(reviewerPassword)}>Fill it in</button>
-          </div>
-        </div>
+        <ReviewerCard rows={[{ label: "Password", value: reviewerPassword }]} onFill={() => setValue(reviewerPassword)}>
+          <p>This site runs on Mutinynet test coins, so the arbiter password is shared for judging.</p>
+          <p>Sign in to verify landlords (including one you register yourself), decide disputes and check payouts.</p>
+        </ReviewerCard>
       )}
     </form>
   );

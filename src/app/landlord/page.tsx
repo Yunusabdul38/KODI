@@ -12,6 +12,7 @@ import { refundDueAt } from "@/lib/deposits";
 import { formatDateTime, formatDay, formatNaira, formatSats } from "@/lib/format";
 import { network, testWalletsAvailable } from "@/lib/lightning";
 import { photoFor } from "@/lib/photos";
+import { reviewerLogins } from "@/lib/reviewer";
 import type { Deposit, Landlord, Unit } from "@/lib/types";
 import { vaultView } from "@/lib/vaults";
 import { signOut, toggleListed } from "./actions";
@@ -52,7 +53,7 @@ function SignIn() {
       </div>
       <div className="rounded-[28px] border border-line bg-card p-6 sm:p-8 lg:max-w-md lg:justify-self-end">
         <h2 className="text-[1.35rem]">Sign in</h2>
-        <div className="mt-6"><SignInForm demo={network() === "demo"} /></div>
+        <div className="mt-6"><SignInForm demo={network() === "demo"} reviewer={reviewerLogins()?.landlord ?? undefined} /></div>
       </div>
     </div>
   );

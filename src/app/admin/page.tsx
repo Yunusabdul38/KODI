@@ -8,6 +8,7 @@ import { clockAhead, now } from "@/lib/clock";
 import { getDeposit, getUnit, listAllUnits, listLandlords, listOpenDisputes, listPayouts, listVaults, unitStatus } from "@/lib/data";
 import { formatDateTime, formatDay, formatNaira, formatSats } from "@/lib/format";
 import { network } from "@/lib/lightning";
+import { reviewerLogins } from "@/lib/reviewer";
 import { adminSignOut, resolvePayout, setFrozen } from "./actions";
 import { AdminSignIn, ClockControls, DecideForm, RetryButton, ReturnVaultForm, VerifyLandlordForm } from "./forms";
 
@@ -24,7 +25,7 @@ export default function AdminPage() {
 async function Route() {
   await connection();
   if (!(await isAdmin())) {
-    const reviewer = network() === "mutinynet" && process.env.PUBLIC_DEMO_ADMIN === "true" ? process.env.ADMIN_PASSWORD : undefined;
+    const reviewer = reviewerLogins()?.arbiterPassword ?? undefined;
     return (
       <div className="container-page grid gap-10 py-12 md:py-16 lg:grid-cols-2">
         <div>

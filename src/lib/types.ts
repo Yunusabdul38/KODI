@@ -48,9 +48,6 @@ export type DepositStatus =
   | "refunded"
   | "expired";
 
-/** Statuses that keep a unit locked (mirrors the deposits_one_active_per_unit index). */
-export const ACTIVE_DEPOSIT: DepositStatus[] = ["awaiting_payment", "held", "refund_requested", "disputed"];
-
 export interface Deposit {
   id: string;
   unitId: string;

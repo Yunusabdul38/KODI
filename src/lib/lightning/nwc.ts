@@ -63,12 +63,3 @@ export async function testWalletInvoice(url: string, satoshi: number, memo: stri
   }
 }
 
-/** Balance of a stand-in wallet, for the test-wallet panel. */
-export async function testWalletBalance(url: string) {
-  const client = new NWCClient({ nostrWalletConnectUrl: url });
-  try {
-    return Math.floor((await client.getBalance()).balance / 1000);
-  } finally {
-    client.close();
-  }
-}

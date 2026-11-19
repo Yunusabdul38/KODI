@@ -168,7 +168,6 @@ export const closeVault = (id: string, status: "paid" | "returned", closedAt: st
 
 export const listVaultPayments = (vaultId: string) =>
   q<VaultPayment>("select * from vault_payments where vault_id = $1 and status <> 'expired' order by created_at desc", [vaultId]);
-export const getVaultPayment = (id: string) => first<VaultPayment>("select * from vault_payments where id = $1", [id]);
 export const getVaultPaymentByHash = (hash: string) =>
   first<VaultPayment>("select * from vault_payments where payment_hash = $1", [hash]);
 export const listPendingVaultPayments = () =>

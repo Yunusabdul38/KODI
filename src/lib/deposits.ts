@@ -11,12 +11,11 @@ import {
   getUnit,
   listAwaitingDeposits,
   listDeposits,
-  listPayoutsForDeposit,
   listPendingVaultPayments,
   moveDeposit,
   openDisputeFor,
 } from "./data";
-import { lightning, network } from "./lightning";
+import { lightning } from "./lightning";
 import { appUrl, sendEmail } from "./notify";
 import { recordPayout, sendPayout } from "./payouts";
 import { ngnPricing } from "./rates";
@@ -397,6 +396,4 @@ export async function maybeRefundNow(d: Deposit) {
   return d;
 }
 
-export const depositPayouts = listPayoutsForDeposit;
-export const isTestNetwork = () => network() !== "mainnet";
 export { openDisputeFor };

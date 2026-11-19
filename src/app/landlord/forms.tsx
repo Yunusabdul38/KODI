@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { ErrorFocus, FormField, invalid, keepValues, MoneyInput } from "@/components/form-controls";
+import { ReviewerCard } from "@/components/reviewer-card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -25,19 +27,36 @@ function Msg({ s }: { s: FormState }) {
 const choice =
   "flex cursor-pointer items-start gap-3 rounded-xl border border-line-2 bg-white p-3.5 has-[[data-state=checked]]:border-forest has-[[data-state=checked]]:ring-1 has-[[data-state=checked]]:ring-forest";
 
-export function SignInForm({ demo }: { demo: boolean }) {
+export function SignInForm({ demo, reviewer }: { demo: boolean; reviewer?: { email: string; password: string } }) {
   const [s, action, pending] = useActionState(signIn, undefined);
+  const [email, setEmail] = useState(demo ? "tolu@adeyemi.test" : "");
+  const [password, setPassword] = useState(demo ? "kodi-demo" : "");
   return (
     <form action={action} onSubmit={keepValues(action)} className="space-y-5">
       <FormField label="Email" htmlFor="email">
-        <Input id="email" name="email" type="email" autoComplete="username" required defaultValue={demo ? "tolu@adeyemi.test" : ""} />
+        <Input id="email" name="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </FormField>
       <FormField label="Password" htmlFor="password">
-        <PasswordInput id="password" name="password" autoComplete="current-password" required defaultValue={demo ? "kodi-demo" : ""} />
+        <PasswordInput id="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
       </FormField>
       <Msg s={s} />
       <button className="btn btn-primary w-full" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
       {demo && <p className="text-[0.85rem] text-ink-3">Sample accounts: tolu@adeyemi.test or chinedu@okafor.test (aisha@bellohomes.test is still under review). Password: kodi-demo.</p>}
+      {reviewer && (
+        <ReviewerCard
+          rows={[{ label: "Email", value: reviewer.email }, { label: "Password", value: reviewer.password }]}
+          onFill={() => {
+            setEmail(reviewer.email);
+            setPassword(reviewer.password);
+          }}
+        >
+          <p>Sign in as an existing verified landlord who already has homes listed and a rental paid out.</p>
+          <p>
+            Or <Link href="/landlord/register" className="font-semibold underline underline-offset-4">register your own landlord account</Link>, then
+            verify it yourself on the <Link href="/admin" className="font-semibold underline underline-offset-4">arbiter page</Link>.
+          </p>
+        </ReviewerCard>
+      )}
     </form>
   );
 }
@@ -63,7 +82,7 @@ function PayoutChoice({ testWallets, error, defaultMethod, defaultAddress, who =
             <RadioGroupItem value="test_wallet" className="mt-0.5" />
             <span>
               <span className="block font-medium">Landlord test wallet (Mutinynet)</span>
-              <span className="block text-[0.88rem] text-ink-3">Test network only: a wallet made by `npm run wallet`, so you can watch payouts arrive.</span>
+              <span className="block text-[0.88rem] text-ink-3">Test network only: Kodi&apos;s stand-in landlord wallet, so you can watch payouts arrive.</span>
             </span>
           </label>
         )}

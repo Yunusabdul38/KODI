@@ -1,6 +1,3 @@
-export const satsToFiat = (sats: number, fiatPerBtc: number) => (sats * fiatPerBtc) / 1e8;
-export const fiatToSats = (amount: number, fiatPerBtc: number) => Math.round((amount / fiatPerBtc) * 1e8);
-
 /**
  * Symbols people use locally and can't confuse with another currency. Anything
  * else shows its ISO code ("EGP 5,000"): Intl's narrow symbols are uneven
@@ -49,10 +46,6 @@ function timeAgo(iso: string) {
   if (abs < 3600) return rtf.format(Math.round(diff / 60), "minute");
   if (abs < 86400) return rtf.format(Math.round(diff / 3600), "hour");
   return rtf.format(Math.round(diff / 86400), "day");
-}
-
-export function daysLeft(iso: string) {
-  return Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 86_400_000));
 }
 
 export function formatDate(iso: string) {

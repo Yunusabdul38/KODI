@@ -147,7 +147,7 @@ async function Featured() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Homes on Kodi</p>
-          <h2 className="mt-3 text-[2.2rem] sm:text-[2.8rem]">Every listing shows if it&apos;s free.</h2>
+          <h2 className="mt-3 text-[2.2rem] sm:text-[2.8rem]">Every listing shows whether it&apos;s free.</h2>
           <p className="mt-3 max-w-xl text-[1.02rem] text-ink-2">
             A badge on each home says whether a deposit is already held on it. If it is, nobody can pay for it here.
           </p>
