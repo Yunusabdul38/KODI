@@ -140,7 +140,32 @@ async function main() {
   // --------------------------------------------------------------- Rent Vault
   const today = (await import("../src/lib/clock")).today;
   const due = new Date(Date.parse(await today()) + 60 * 86_400_000).toISOString().slice(0, 10);
-  const v = await vaults.startVault({ unit, tenantName: "Tenant 1", tenantEmail: "tenant1@test.ng", targetNgn: 2_400_000, dueDate: due, schedule: "monthly" });
+  const terms = { targetNgn: 2_400_000, dueDate: due, schedule: "monthly" as const, pin: "135790" };
+  const ask = await vaults.startVault({ unit: unit3, tenantName: "Stranger", tenantEmail: "stranger@test.ng", ...terms });
+  check("a vault asked for by home code waits for the landlord", ask.vault.status === "pending");
+  check("a waiting vault can't take money", await rejects(vaults.topUp(ask.vault, 1000, null), /landlord confirms/));
+  check("the database refuses money into a waiting vault", await rejects(db.query("insert into vault_payments (vault_id) values ($1)", [ask.vault.id]), /not open for payments/));
+  check("only the home's landlord can answer a request", await rejects(vaults.decideVaultRequest(ask.vault, "ll_bello", true), /one of your homes/));
+  const releasedC = (await data.getDeposit(cHeld.id))!;
+  const v = await vaults.startVault({ unit: unit3, tenantName: releasedC.tenantName, tenantEmail: releasedC.tenantEmail, ...terms, deposit: releasedC });
+  check("a vault opened from the tenant's own deposit opens at once", v.vault.status === "active");
+  check("opening it declines other requests for the home", (await data.getVault(ask.vault.id))!.status === "declined");
+  check("a home can't have a second Rent Vault", await rejects(vaults.startVault({ unit: unit3, tenantName: "Second", tenantEmail: "second@test.ng", ...terms }), /already has a Rent Vault/));
+  check(
+    "the database itself refuses a second open vault for a home",
+    await rejects(
+      db.query(
+        "insert into vaults (code, unit_id, tenant_name, tenant_email, token_hash, landlord_token_hash, target_ngn, due_date, schedule, status) values ('RV-TTTTTT', $1, 'x', 'x@test.ng', 'th', 'lth', 1000000, $2, 'monthly', 'active')",
+        [unit3.id, due],
+      ),
+      /vaults_one_active_per_unit/,
+    ),
+  );
+  const lekki = (await data.getUnitByCode("KD-LEKK3"))!;
+  const ask2 = await vaults.startVault({ unit: lekki, tenantName: "Sitting tenant", tenantEmail: "sitting@test.ng", ...terms });
+  const approved = await vaults.decideVaultRequest(ask2.vault, lekki.landlordId, true);
+  check("the landlord's confirmation opens a requested vault", approved.status === "active");
+  check("a request can't be answered twice", await rejects(vaults.decideVaultRequest(approved, lekki.landlordId, false), /already answered/));
   const p1 = await vaults.topUp(v.vault, 400_000, null);
   const p2 = await vaults.topUp(v.vault, 200_000, "Auntie Bisi (London)");
   check("unpaid top-ups don't count", (await vaults.vaultView(v.vault)).savedNgn === 0);

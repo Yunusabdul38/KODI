@@ -8,6 +8,7 @@ import { Progress } from "./status";
 export function VaultSummary({ v, showPayers = true }: { v: VaultView; showPayers?: boolean }) {
   const { vault } = v;
   const closed = vault.status !== "active";
+  const label = { pending: "Waiting for the landlord", declined: "Declined by the landlord", paid: "Paid to landlord", returned: "Returned to tenant", active: "" }[vault.status];
   return (
     <div className="rounded-[28px] border border-line bg-card p-6 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -15,8 +16,8 @@ export function VaultSummary({ v, showPayers = true }: { v: VaultView; showPayer
           <PiggyBankIcon className="size-5 text-forest" aria-hidden="true" /> Rent Vault · <span className="code-chip">{vault.code}</span>
         </span>
         {closed ? (
-          <span className="rounded-full bg-green-soft px-2.5 py-1 text-[0.8rem] font-semibold text-green-2">
-            {vault.status === "paid" ? "Paid to landlord" : "Returned to tenant"}
+          <span className={`rounded-full px-2.5 py-1 text-[0.8rem] font-semibold ${vault.status === "pending" ? "bg-amber-soft text-amber" : vault.status === "declined" ? "bg-clay-soft text-ink" : "bg-green-soft text-green-2"}`}>
+            {label}
           </span>
         ) : (
           <span className={`rounded-full px-2.5 py-1 text-[0.8rem] font-semibold ${v.onTrack ? "bg-green-soft text-green-2" : "bg-amber-soft text-amber"}`}>

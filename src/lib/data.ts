@@ -162,7 +162,13 @@ export const listVaultsForUnits = (unitIds: string[]) =>
 export const listVaults = () => q<Vault>("select * from vaults order by created_at desc");
 export const listDueVaults = (today: string) =>
   q<Vault>("select * from vaults where status = 'active' and due_date <= $1::date order by due_date", [today]);
-export const createVault = (v: Omit<Vault, "id" | "status" | "closedAt" | "createdAt">) => insert<Vault>("vaults", v);
+export const createVault = (v: Omit<Vault, "id" | "closedAt" | "createdAt">) => insert<Vault>("vaults", v);
+/** Answers a vault request; null when it was already answered. */
+export const decideVault = (id: string, status: "active" | "declined", approvedAt: string | null) =>
+  update<Vault>("vaults", id, { status, approvedAt }, "and status = 'pending'");
+/** Once a home's vault is open, any other request for that home is declined. */
+export const declineOtherVaultRequests = (unitId: string, keepId: string) =>
+  q<Vault>("update vaults set status = 'declined' where unit_id = $1 and status = 'pending' and id <> $2 returning *", [unitId, keepId]);
 export const closeVault = (id: string, status: "paid" | "returned", closedAt: string) =>
   update<Vault>("vaults", id, { status, closedAt }, "and status = 'active'");
 

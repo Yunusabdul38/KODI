@@ -7,13 +7,14 @@ import { z } from "zod";
 import { currentLandlord, signInLandlord, signOutLandlord } from "@/lib/auth";
 import { clientIp } from "@/lib/client-ip";
 import { AREAS } from "@/lib/areas";
-import { addAudit, createLandlord, createUnit, getDeposit, getLandlordByEmail, getUnit, updateLandlord, updateUnit } from "@/lib/data";
+import { addAudit, createLandlord, createUnit, getDeposit, getLandlordByEmail, getUnit, getVault, updateLandlord, updateUnit } from "@/lib/data";
 import { KodiError, landlordConfirmHandover, openDispute } from "@/lib/deposits";
 import { network } from "@/lib/lightning";
 import { appUrl, sendEmail } from "@/lib/notify";
 import { PHOTO_KEYS } from "@/lib/photos";
 import { rateLimit, recordHit, underLimit } from "@/lib/rate-limit";
 import { hashSecret, newCode } from "@/lib/secrets";
+import { decideVaultRequest } from "@/lib/vaults";
 
 export type FormState = { error?: string; ok?: string; errors?: Partial<Record<string, string>> } | undefined;
 
@@ -222,6 +223,17 @@ export async function handedOver(depositId: string): Promise<FormState> {
     const { l, d } = await ownDeposit(depositId);
     await landlordConfirmHandover(d, l);
     return "Noted. The tenant has been asked to confirm.";
+  });
+}
+
+/** Confirms (the vault opens) or declines a tenant's request to open a Rent Vault for one of your homes. */
+export async function answerVaultRequest(vaultId: string, approve: boolean): Promise<FormState> {
+  return wrap(async () => {
+    const l = await requireLandlord();
+    const vault = await getVault(vaultId);
+    if (!vault) throw new KodiError("That request isn't on one of your homes.");
+    await decideVaultRequest(vault, l.id, approve);
+    return approve ? `Confirmed. ${vault.tenantName}'s Rent Vault is open.` : "Declined. The vault can't take money.";
   });
 }
 

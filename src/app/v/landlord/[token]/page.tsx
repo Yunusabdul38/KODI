@@ -33,6 +33,11 @@ async function View({ params }: { params: PageProps<"/v/landlord/[token]">["para
         This money is locked for your rent. On {formatDay(vault.dueDate)} Kodi pays you everything saved, to the payout
         account on your Kodi profile. The tenant can&apos;t withdraw it.
       </p>
+      {vault.status === "pending" && (
+        <Notice tone="info" className="mt-6 text-[0.93rem]">
+          {vault.tenantName} asked to open this vault. Confirm it on your landlord dashboard if they live in your home.
+        </Notice>
+      )}
       <div className="mt-8"><VaultSummary v={v} showPayers={false} /></div>
       <Notice tone="info" className="mt-6 text-[0.93rem]">
         Each amount links to its receipt with the Lightning payment proof, so you can check it was really paid.

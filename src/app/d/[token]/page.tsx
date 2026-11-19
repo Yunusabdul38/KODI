@@ -232,7 +232,7 @@ async function Panel({ d, token, landlordName, payouts, openDispute, tNow }: { d
         <div className="mt-6 rounded-2xl bg-paper-2 p-5">
           <h3 className="text-[1.05rem]">Next year&apos;s rent, a little at a time</h3>
           <p className="mt-1 text-[0.93rem] text-ink-2">Open a Rent Vault for this home and save weekly or monthly. Your landlord can watch it grow.</p>
-          <Link href={`/vault?unit=${encodeURIComponent((await getUnit(d.unitId))!.code)}`} className="btn btn-primary mt-4">
+          <Link href={`/vault?deposit=${encodeURIComponent(token)}`} className="btn btn-primary mt-4">
             Start a Rent Vault <ArrowRightIcon className="size-4" />
           </Link>
         </div>

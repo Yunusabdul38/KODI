@@ -16,7 +16,7 @@ import { reviewerLogins } from "@/lib/reviewer";
 import type { Deposit, Landlord, Unit } from "@/lib/types";
 import { vaultView } from "@/lib/vaults";
 import { signOut, toggleListed } from "./actions";
-import { HandoverButton, LandlordDisputeForm, PayoutForm, SignInForm } from "./forms";
+import { HandoverButton, LandlordDisputeForm, PayoutForm, SignInForm, VaultRequestButtons } from "./forms";
 
 export const metadata = { title: "For landlords", robots: { index: false } };
 
@@ -112,6 +112,7 @@ async function Dashboard({ l, listed }: { l: Landlord; listed: string | null }) 
   const active = deposits.filter((d) => ["held", "refund_requested", "disputed"].includes(d.status));
   const past = deposits.filter((d) => ["released", "refunded"].includes(d.status));
   const views = await Promise.all(vaults.filter((v) => v.status === "active").map(vaultView));
+  const requests = vaults.filter((v) => v.status === "pending");
   const paidOut = (await Promise.all(past.filter((d) => d.status === "released").map((d) => listPayoutsForDeposit(d.id))))
     .flat()
     .filter((p) => p.recipient === "landlord" && p.status === "sent")
@@ -176,6 +177,24 @@ async function Dashboard({ l, listed }: { l: Landlord; listed: string | null }) 
           </ul>
         )}
       </section>
+
+      {requests.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-[1.5rem]">Rent Vault requests</h2>
+          <p className="mt-1 text-ink-2">Confirm only tenants who live in the home. A home can have one Rent Vault, and it pays you on the due date.</p>
+          <ul className="mt-5 space-y-3">
+            {requests.map((r) => (
+              <li key={r.id} className="rounded-[22px] border border-line bg-card p-5">
+                <p className="font-semibold">{r.tenantName} · <span className="code-chip">{byId.get(r.unitId)?.code}</span> {byId.get(r.unitId)?.title}</p>
+                <p className="mt-1 text-[0.92rem] text-ink-2">
+                  {r.tenantEmail} · saving {formatNaira(r.targetNgn)} {r.schedule} for {formatDay(r.dueDate)} · asked {formatDateTime(r.createdAt)}
+                </p>
+                <div className="mt-3"><VaultRequestButtons vaultId={r.id} /></div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {views.length > 0 && (
         <section className="mt-12">

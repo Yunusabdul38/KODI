@@ -5,12 +5,15 @@ import {
   addAudit,
   closeVault,
   createVault,
+  declineOtherVaultRequests,
+  decideVault,
   createVaultPayment,
   getLandlord,
   getUnit,
   getVault,
   listDueVaults,
   listVaultPayments,
+  listVaultsForUnits,
   settleVaultPayment as saveSettlement,
   vaultSavedNgn,
   vaultSavedSats,
@@ -21,8 +24,8 @@ import { lightning } from "./lightning";
 import { appUrl, sendEmail } from "./notify";
 import { recordPayout, sendPayout } from "./payouts";
 import { ngnPricing } from "./rates";
-import { landlordViewToken, newCode, newToken, tokenHash } from "./secrets";
-import type { PayoutMethod, Unit, Vault, VaultPayment } from "./types";
+import { hashSecret, landlordViewToken, newCode, newToken, tokenHash } from "./secrets";
+import type { Deposit, PayoutMethod, Unit, Vault, VaultPayment } from "./types";
 
 /**
  * Rent Vault: a sitting tenant saves toward next year's rent in small
@@ -34,6 +37,11 @@ import type { PayoutMethod, Unit, Vault, VaultPayment } from "./types";
 
 const INVOICE_MINUTES = 15;
 
+/**
+ * Opens a vault. From the tenant's own paid-out Kodi deposit it opens at once;
+ * otherwise it waits for the landlord to confirm the tenant lives there. A home
+ * has at most one open vault (the vaults_one_active_per_unit index).
+ */
 export async function startVault(input: {
   unit: Unit;
   tenantName: string;
@@ -41,7 +49,20 @@ export async function startVault(input: {
   targetNgn: number;
   dueDate: string;
   schedule: "weekly" | "monthly";
+  pin: string;
+  deposit?: Deposit | null;
 }): Promise<{ vault: Vault; token: string; landlordToken: string }> {
+  const fromDeposit = Boolean(input.deposit);
+  if (input.deposit && (input.deposit.unitId !== input.unit.id || input.deposit.status !== "released")) {
+    throw new KodiError("A Rent Vault can be opened from a deposit only once the landlord has been paid.");
+  }
+  if (!/^\d{6}$/.test(input.pin)) throw new KodiError("Choose a 6-digit PIN.");
+  const open = (await listVaultsForUnits([input.unit.id])).filter((v) => v.status === "active" || v.status === "pending");
+  if (open.some((v) => v.status === "active")) throw new KodiError(VAULT_TAKEN);
+  const email = input.tenantEmail.toLowerCase();
+  if (!fromDeposit && open.some((v) => v.tenantEmail === email)) {
+    throw new KodiError("You've already asked to open a Rent Vault for this home. Your landlord will confirm it.");
+  }
   const t = await today();
   if (input.dueDate <= t) throw new KodiError("The due date must be in the future.");
   if (Date.parse(input.dueDate) - Date.parse(t) > 548 * 86_400_000) throw new KodiError("Choose a due date within 18 months.");
@@ -49,19 +70,72 @@ export async function startVault(input: {
   if (input.targetNgn > input.unit.annualRentNgn * 2) throw new KodiError("The target can't be more than two years' rent for this unit.");
   const token = newToken();
   const landlordToken = landlordViewToken(token);
-  const vault = await createVault({
-    code: newCode("RV", 6),
-    unitId: input.unit.id,
-    tenantName: input.tenantName,
-    tenantEmail: input.tenantEmail.toLowerCase(),
-    tokenHash: tokenHash(token),
-    landlordTokenHash: tokenHash(landlordToken),
-    targetNgn: Math.round(input.targetNgn),
-    dueDate: input.dueDate,
-    schedule: input.schedule,
-  });
-  await addAudit({ role: "tenant", actor: vault.tenantEmail, action: "vault_created", unitId: vault.unitId, vaultId: vault.id, details: formatNaira(vault.targetNgn) });
+  let vault: Vault;
+  try {
+    vault = await createVault({
+      code: newCode("RV", 6),
+      unitId: input.unit.id,
+      tenantName: input.tenantName,
+      tenantEmail: email,
+      tokenHash: tokenHash(token),
+      landlordTokenHash: tokenHash(landlordToken),
+      targetNgn: Math.round(input.targetNgn),
+      dueDate: input.dueDate,
+      schedule: input.schedule,
+      status: fromDeposit ? "active" : "pending",
+      depositId: input.deposit?.id ?? null,
+      pinHash: hashSecret(input.pin),
+      approvedAt: fromDeposit ? new Date().toISOString() : null,
+    });
+  } catch (e) {
+    if (/vaults_one_active_per_unit/.test((e as Error).message)) throw new KodiError(VAULT_TAKEN);
+    throw e;
+  }
+  const details = formatNaira(vault.targetNgn);
+  if (fromDeposit) {
+    await declineOtherVaultRequests(vault.unitId, vault.id);
+    await addAudit({ role: "tenant", actor: email, action: "vault_created", unitId: vault.unitId, vaultId: vault.id, details });
+  } else {
+    await addAudit({ role: "tenant", actor: email, action: "vault_requested", unitId: vault.unitId, vaultId: vault.id, details });
+    const landlord = await getLandlord(input.unit.landlordId);
+    if (landlord) {
+      await sendEmail(
+        [landlord.email],
+        `Rent Vault request for ${input.unit.title}, ${input.unit.area}`,
+        `${vault.tenantName} wants to save for next year's rent at ${input.unit.code}. Confirm or decline it on your dashboard:\n\n${appUrl()}/landlord`,
+      ).catch(() => {});
+    }
+  }
   return { vault, token, landlordToken };
+}
+
+const VAULT_TAKEN = "This home already has a Rent Vault. If it's yours, open it from your private link.";
+
+/** The landlord confirms the tenant lives in the home (the vault opens) or declines the request. */
+export async function decideVaultRequest(vault: Vault, landlordId: string, approve: boolean) {
+  const unit = await getUnit(vault.unitId);
+  if (!unit || unit.landlordId !== landlordId) throw new KodiError("This request isn't for one of your homes.");
+  if (vault.status !== "pending") throw new KodiError("This request was already answered.");
+  let decided: Vault | null;
+  try {
+    decided = await decideVault(vault.id, approve ? "active" : "declined", approve ? new Date().toISOString() : null);
+  } catch (e) {
+    if (/vaults_one_active_per_unit/.test((e as Error).message)) {
+      throw new KodiError("This home already has an open Rent Vault, so this request can only be declined.");
+    }
+    throw e;
+  }
+  if (!decided) throw new KodiError("This request was already answered.");
+  if (approve) await declineOtherVaultRequests(unit.id, vault.id);
+  await addAudit({ role: "landlord", actor: landlordId, action: approve ? "vault_approved" : "vault_declined", unitId: unit.id, vaultId: vault.id });
+  await sendEmail(
+    [vault.tenantEmail],
+    approve ? "Your Rent Vault is open" : "Your Rent Vault request was declined",
+    approve
+      ? `Your landlord confirmed your Rent Vault for ${unit.title}, ${unit.area}. You can start saving now from your private link.`
+      : `Your landlord didn't confirm the Rent Vault for ${unit.title}, ${unit.area}, so it can't take money. Ask them about it.`,
+  ).catch(() => {});
+  return decided;
 }
 
 export interface VaultView {
@@ -110,6 +184,7 @@ export async function vaultView(vault: Vault): Promise<VaultView> {
 
 /** A Lightning invoice to add to a vault. Anyone with the family link can top up. */
 export async function topUp(vault: Vault, amountNgn: number, payerName: string | null) {
+  if (vault.status === "pending") throw new KodiError("This vault opens once the landlord confirms it.");
   if (vault.status !== "active") throw new KodiError("This vault is closed.");
   if (!Number.isFinite(amountNgn) || amountNgn < 500) throw new KodiError("The smallest top-up is ₦500.");
   if (amountNgn > vault.targetNgn) throw new KodiError("That is more than the whole target.");

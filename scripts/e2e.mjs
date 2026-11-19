@@ -271,15 +271,22 @@ try {
 
   // -------------------------------------------------------------- Rent Vault
   step = "vault";
-  await go(a.page, "/vault?unit=KD-YABA2");
+  await a.page.goto(depositA, { waitUntil: "networkidle" });
+  await a.page.click("a:has-text('Start a Rent Vault')");
+  await a.page.waitForSelector("#pinConfirm", { timeout: 15000 });
+  check("a vault opened from the deposit knows the tenant", (await a.page.inputValue("#tenantName")) === "Ada Obi");
   const minDue = await a.page.getAttribute("#dueDate", "min");
-  await a.page.fill("#tenantName", "Ada Obi");
-  await a.page.fill("#tenantEmail", "ada@tenant.test");
-  await a.page.fill("#targetNgn", "2400000");
-  await a.page.fill("#dueDate", addDays(minDue, 60));
+  const fillVault = async (page, pin, days = 60) => {
+    await page.fill("#targetNgn", "2400000");
+    await page.fill("#dueDate", addDays(minDue, days));
+    await page.fill("#pin", pin);
+    await page.fill("#pinConfirm", pin);
+  };
+  await fillVault(a.page, "482916");
   await a.page.click("button:has-text('Open my Rent Vault')");
   await a.page.waitForURL(/\/v\/[A-Za-z0-9_-]{20,}$/, { timeout: 15000 });
   await a.page.waitForSelector("h2:text-is('Add money')");
+  check("the tenant's own vault opens at once", true);
   const vaultUrl = a.page.url();
   await a.page.fill("#amount", "50000");
   await a.page.click("button:has-text('Add ₦50,000')");
@@ -300,6 +307,43 @@ try {
   await b.page.goto(landlordView, { waitUntil: "networkidle" });
   check("the landlord's link shows progress", (await b.page.locator("text=₦75,000").count()) >= 1);
   check("the landlord's link hides who paid", (await b.page.locator("text=Auntie Bisi").count()) === 0);
+
+  const fwd = await session();
+  await fwd.page.goto(vaultUrl, { waitUntil: "networkidle" });
+  check(
+    "a forwarded private vault link shows only the PIN screen",
+    (await fwd.page.locator("text=Enter your PIN").count()) === 1 && (await fwd.page.locator("text=/vault/top-up/").count()) === 0,
+  );
+  await fwd.page.fill("#pin", "111111");
+  await fwd.page.click("button:has-text('Open my vault')");
+  await fwd.page.waitForSelector("text=That PIN isn't right.", { timeout: 10000 });
+  check("a wrong vault PIN is refused", true);
+  await fwd.page.fill("#pin", "482916");
+  await fwd.page.click("button:has-text('Open my vault')");
+  await fwd.page.waitForSelector("h2:text-is('Add money')", { timeout: 15000 });
+  check("the right PIN opens the vault", true);
+
+  await go(b.page, "/vault?unit=KD-YABA2");
+  await b.page.fill("#tenantName", "Bayo Ade");
+  await b.page.fill("#tenantEmail", "bayo@tenant.test");
+  await fillVault(b.page, "246802");
+  await b.page.click("button:has-text('Ask to open my Rent Vault')");
+  await b.page.waitForSelector("text=This home already has a Rent Vault", { timeout: 15000 });
+  check("nobody else can open a second vault for the same home", true);
+
+  await go(b.page, "/vault?unit=KD-LEKK3");
+  await b.page.fill("#tenantName", "Kemi Lawal");
+  await b.page.fill("#tenantEmail", "kemi@tenant.test");
+  await fillVault(b.page, "246802", 200);
+  await b.page.click("button:has-text('Ask to open my Rent Vault')");
+  await b.page.waitForSelector("text=to confirm you live here", { timeout: 15000 });
+  check("a vault asked for by home code waits for the landlord", (await b.page.locator("h2:text-is('Add money')").count()) === 0);
+  await go(tolu.page, "/landlord");
+  await tolu.page.waitForSelector("h2:text-is('Rent Vault requests')", { timeout: 15000 });
+  await tolu.page.click("button:has-text('Yes, they live here')");
+  await tolu.page.waitForSelector("section:has(h2:text-is('Tenants saving with Rent Vault')) >> text=Kemi Lawal", { timeout: 15000 });
+  await b.page.reload({ waitUntil: "networkidle" });
+  check("the landlord's confirmation opens it", (await b.page.locator("h2:text-is('Add money')").count()) === 1);
   for (let i = 0; i < 3; i++) {
     await admin.page.click("button:has-text('+30 days')");
     await admin.page.waitForSelector("text=Skipped ahead 30 days", { timeout: 10000 });

@@ -2,14 +2,16 @@ import { CalendarClockIcon, EyeIcon, HandCoinsIcon, LockIcon } from "lucide-reac
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { lagosDate, now } from "@/lib/clock";
-import { StartVaultForm } from "./vault-forms";
+import { getDepositByToken, getUnit } from "@/lib/data";
+import { tokenHash } from "@/lib/secrets";
+import { StartVaultForm, type VaultFromDeposit } from "./vault-forms";
 
 export const metadata = { title: "Rent Vault" };
 
 export default function VaultPage({ searchParams }: PageProps<"/vault">) {
   const points = [
     { icon: HandCoinsIcon, title: "Save in small steps", text: "Add money weekly or monthly from any Lightning wallet, from ₦500. Family abroad can top up too." },
-    { icon: EyeIcon, title: "Your landlord can watch", text: "Share a read-only link. They see how much is saved and whether you're on track, never your other details." },
+    { icon: EyeIcon, title: "Your landlord can watch", text: "Your landlord confirms you live there, then sees how much is saved and whether you're on track, never your other details." },
     { icon: LockIcon, title: "Locked for rent", text: "Money in the vault can only go to your landlord. That's what makes it as good as a lump sum to them." },
     { icon: CalendarClockIcon, title: "Paid on the due date", text: "On the day, Kodi pays your landlord everything saved, with a receipt for both of you." },
   ];
@@ -51,13 +53,21 @@ export default function VaultPage({ searchParams }: PageProps<"/vault">) {
   );
 }
 
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
 async function Form({ searchParams }: { searchParams: PageProps<"/vault">["searchParams"] }) {
   await connection();
-  const u = (await searchParams).unit;
+  const sp = await searchParams;
+  const depositToken = first(sp.deposit);
+  const deposit = depositToken ? await getDepositByToken(tokenHash(depositToken)) : null;
+  const unit = deposit?.status === "released" ? await getUnit(deposit.unitId) : null;
+  const fromDeposit: VaultFromDeposit | undefined =
+    deposit && unit ? { token: depositToken!, unitCode: unit.code, tenantName: deposit.tenantName, tenantEmail: deposit.tenantEmail } : undefined;
   const t = await now();
   return (
     <StartVaultForm
-      unitCode={(Array.isArray(u) ? u[0] : u) ?? ""}
+      unitCode={first(sp.unit) ?? ""}
+      fromDeposit={fromDeposit}
       minDate={lagosDate(new Date(t.getTime() + 86_400_000))}
       maxDate={lagosDate(new Date(t.getTime() + 548 * 86_400_000))}
     />

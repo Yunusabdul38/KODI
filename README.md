@@ -9,8 +9,10 @@ more than 15 people paid for the same flats. Kodi fixes two things:
   over Lightning. The home locks the moment they pay: the database refuses any other deposit for it. When the
   tenant confirms they have the keys, the landlord and agent are paid their shares. No keys by the move-in
   date? The tenant asks for a refund; the landlord has 48 hours to object, and an objection goes to an arbiter.
-- **Rent Vault.** A sitting tenant saves toward next year's rent, weekly or monthly. The landlord watches
-  progress on a read-only link, family can top up from anywhere, and on the due date Kodi pays the landlord.
+- **Rent Vault.** A sitting tenant saves toward next year's rent, weekly or monthly. One vault per home: it
+  opens at once from the tenant's own Kodi deposit, otherwise the landlord confirms the tenant lives there.
+  The private vault page needs the tenant's PIN. The landlord watches progress on a read-only link, family can
+  top up from anywhere, and on the due date Kodi pays the landlord.
 
 Everything runs on Mutinynet, Bitcoin's test network. Amounts are in naira; on the test network they're
 converted at 1/1000 of the real rate, so a real Lagos rent fits in free test coins.
@@ -61,7 +63,8 @@ The arbiter password is `kodi-admin` locally.
 7. **Refund and dispute**: pay a deposit on another home, then on `/admin` use the **demo clock** (test
    network only) to skip past the move-in date. Ask for a refund as the tenant, object as the landlord, and
    decide as the arbiter.
-8. **Rent Vault** at `/vault`: open one for a let home, top up, share the family and landlord links, then skip
+8. **Rent Vault**: open one from the tenant's deposit page (or ask for one at `/vault` and confirm it as the
+   landlord), choose a PIN, top up, share the family and landlord links, then skip
    the clock past the due date and press **Run daily jobs now**. The landlord is paid.
 9. **Escrow ledger** at `/ledger`: what Kodi owes, the wallet balance, and every movement with its proof.
 
@@ -82,6 +85,7 @@ or run `npx playwright install chromium` once.
 | Rule | Enforced by |
 | --- | --- |
 | One active deposit per home (awaiting payment, held, refund requested or disputed) | Partial unique index `deposits_one_active_per_unit` |
+| One open Rent Vault per home, and no money into a vault the landlord hasn't confirmed | Partial unique index `vaults_one_active_per_unit`, trigger `vault_payments_open` |
 | At most 12 months' rent from a new tenant | Check constraint on `deposits.months`, and the form |
 | A deposit's amounts and terms never change; its status only moves forward | Trigger `deposits_guard` |
 | No payout larger than what was paid in for that deposit or vault | Trigger `payouts_within_balance` (row lock) |
@@ -100,8 +104,8 @@ it returns must be `https` on a public IP.
 | Who | Proves it with | Can |
 | --- | --- | --- |
 | Anyone | nothing | Browse homes, check a code, top up a vault from a family link, read receipts. |
-| Tenant | the private link (only its SHA-256 is stored) | Pay, confirm the keys, ask for a refund, open a dispute; open and top up a Rent Vault. |
-| Landlord | email + password (scrypt) | Under review: see their status only. Verified: list homes, confirm handover, object to a refund, open a dispute, set the payout address. |
+| Tenant | the private link (only its SHA-256 is stored); for a Rent Vault, also a 6-digit PIN (scrypt) | Pay, confirm the keys, ask for a refund, open a dispute; open and top up a Rent Vault. |
+| Landlord | email + password (scrypt) | Under review: see their status only. Verified: list homes, confirm handover, object to a refund, open a dispute, set the payout address, confirm or decline Rent Vault requests. |
 | Arbiter | `ADMIN_PASSWORD` | Verify landlords, decide disputes, freeze listings, resolve payouts, return vault savings. |
 
 Sessions are signed, httpOnly, SameSite=Lax cookies (8 hours); changing a password signs out other

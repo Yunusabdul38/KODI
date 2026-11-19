@@ -3,23 +3,29 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { unlockVault, vaultUnlocked } from "@/lib/auth";
 import { clientIp } from "@/lib/client-ip";
-import { getLandlord, getUnitByCode, getVaultByCode, getVaultByToken } from "@/lib/data";
+import { getDepositByToken, getLandlord, getUnit, getUnitByCode, getVaultByCode, getVaultByToken } from "@/lib/data";
 import { KodiError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
-import { tokenHash } from "@/lib/secrets";
+import { tokenHash, verifySecret } from "@/lib/secrets";
 import { startVault, topUp } from "@/lib/vaults";
 
 export type VaultFormState = { error?: string; errors?: Partial<Record<string, string>> };
 
-const schema = z.object({
-  unitCode: z.string().trim().toUpperCase().regex(/^KD-[A-Z0-9]{5}$/, "Enter the home's Kodi code, like KD-YABA2."),
-  tenantName: z.string().trim().min(2, "Enter your name.").max(80),
-  tenantEmail: z.string().trim().pipe(z.email("Enter your email address.").max(200)),
-  targetNgn: z.coerce.number({ error: "Enter the target." }).int().min(10_000, "At least ₦10,000."),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose when the rent is due."),
-  schedule: z.enum(["weekly", "monthly"]),
-});
+const schema = z
+  .object({
+    unitCode: z.string().trim().toUpperCase().regex(/^KD-[A-Z0-9]{5}$/, "Enter the home's Kodi code, like KD-YABA2."),
+    tenantName: z.string().trim().min(2, "Enter your name.").max(80),
+    tenantEmail: z.string().trim().pipe(z.email("Enter your email address.").max(200)),
+    targetNgn: z.coerce.number({ error: "Enter the target." }).int().min(10_000, "At least ₦10,000."),
+    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose when the rent is due."),
+    schedule: z.enum(["weekly", "monthly"]),
+    pin: z.string().regex(/^\d{6}$/, "Choose 6 digits."),
+    pinConfirm: z.string(),
+    deposit: z.string().optional(),
+  })
+  .refine((d) => d.pin === d.pinConfirm, { path: ["pinConfirm"], message: "The two PINs don't match." });
 
 export async function createVault(_: VaultFormState, form: FormData): Promise<VaultFormState> {
   const ip = clientIp(await headers());
@@ -31,17 +37,46 @@ export async function createVault(_: VaultFormState, form: FormData): Promise<Va
     return { errors };
   }
   const d = parsed.data;
-  const unit = await getUnitByCode(d.unitCode);
+  // Opened from the tenant's own deposit link: the home and the tenant come from that deposit.
+  const deposit = d.deposit ? await getDepositByToken(tokenHash(d.deposit)) : null;
+  if (d.deposit && !deposit) return { error: "This deposit link isn't valid. Open the vault from your deposit page again." };
+  const unit = deposit ? await getUnit(deposit.unitId) : await getUnitByCode(d.unitCode);
   const landlord = unit && (await getLandlord(unit.landlordId));
   if (!unit || !landlord?.verified) return { errors: { unitCode: "That code isn't a home on Kodi. Ask your landlord to list it." } };
   let token: string;
   try {
-    token = (await startVault({ unit, tenantName: d.tenantName, tenantEmail: d.tenantEmail, targetNgn: d.targetNgn, dueDate: d.dueDate, schedule: d.schedule })).token;
+    const opened = await startVault({
+      unit,
+      tenantName: deposit?.tenantName ?? d.tenantName,
+      tenantEmail: deposit?.tenantEmail ?? d.tenantEmail,
+      targetNgn: d.targetNgn,
+      dueDate: d.dueDate,
+      schedule: d.schedule,
+      pin: d.pin,
+      deposit,
+    });
+    token = opened.token;
+    await unlockVault(opened.vault);
   } catch (e) {
     if (e instanceof KodiError) return { error: e.message };
     console.error(e);
     return { error: "Something went wrong. Please try again." };
   }
+  redirect(`/v/${token}`);
+}
+
+export type PinState = { error?: string } | undefined;
+
+/** Unlocks the tenant's private vault page on this device. */
+export async function enterVaultPin(token: string, _: PinState, form: FormData): Promise<PinState> {
+  const vault = await getVaultByToken(tokenHash(token));
+  if (!vault?.pinHash) return { error: "This vault link isn't valid." };
+  const ip = clientIp(await headers());
+  if (!rateLimit(`vault-pin:${vault.id}`, 5, 15 * 60_000) || !rateLimit(`vault-pin-ip:${ip}`, 20, 15 * 60_000)) {
+    return { error: "Too many tries. Please wait 15 minutes." };
+  }
+  if (!verifySecret(String(form.get("pin") ?? "").trim(), vault.pinHash)) return { error: "That PIN isn't right." };
+  await unlockVault(vault);
   redirect(`/v/${token}`);
 }
 
@@ -53,6 +88,7 @@ export async function createTopUp(ref: { token?: string; code?: string }, _: Top
   if (!rateLimit(`topup:${ip}`, 20, 15 * 60_000)) return { error: "Too many attempts. Please wait a few minutes." };
   const vault = ref.token ? await getVaultByToken(tokenHash(ref.token)) : ref.code ? await getVaultByCode(ref.code) : null;
   if (!vault) return { error: "This vault link isn't valid." };
+  if (ref.token && !(await vaultUnlocked(vault))) return { error: "Enter your PIN first." };
   const amount = Number(String(form.get("amount") ?? "").replace(/[^\d.]/g, ""));
   const payer = ref.code ? String(form.get("payerName") ?? "").trim().slice(0, 60) : null;
   if (ref.code && !payer) return { error: "Add your name so the tenant knows who helped." };

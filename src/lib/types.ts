@@ -89,7 +89,13 @@ export interface Vault {
   targetNgn: number;
   dueDate: string;
   schedule: "weekly" | "monthly";
-  status: "active" | "paid" | "returned";
+  /** pending: waiting for the landlord to confirm the tenant lives there. */
+  status: "pending" | "active" | "declined" | "paid" | "returned";
+  /** The tenant's own Kodi deposit for this home, when the vault was opened from it. */
+  depositId: string | null;
+  /** The PIN that unlocks the tenant's private vault page. */
+  pinHash: string | null;
+  approvedAt: string | null;
   closedAt: string | null;
   createdAt: string;
 }

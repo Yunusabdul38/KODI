@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createHash } from "node:crypto";
 import { getLandlordByEmail } from "./data";
 import { safeEqual, sign, unsign, verifySecret } from "./secrets";
-import type { Landlord } from "./types";
+import type { Landlord, Vault } from "./types";
 
 const LANDLORD_COOKIE = "kodi_landlord";
 const ADMIN_COOKIE = "kodi_admin";
@@ -85,4 +85,21 @@ export async function isAdmin() {
 
 export async function signOutAdmin() {
   (await cookies()).delete(ADMIN_COOKIE);
+}
+
+// A vault's private link alone doesn't open it: the tenant's PIN unlocks it on
+// one device for 30 days, so a forwarded link shows nothing but the PIN screen.
+const VAULT_MAX_AGE = 60 * 60 * 24 * 30;
+const vaultCookie = (v: Vault) => `kodi_vault_${v.id.replace(/[^A-Za-z0-9_-]/g, "")}`;
+
+export async function unlockVault(v: Vault) {
+  if (!v.pinHash) return;
+  const session: Session = { sub: v.id, v: codeVersion(v.pinHash), exp: Date.now() + VAULT_MAX_AGE * 1000 };
+  (await cookies()).set(vaultCookie(v), sign(session), { ...cookieOpts, maxAge: VAULT_MAX_AGE });
+}
+
+export async function vaultUnlocked(v: Vault) {
+  if (!v.pinHash) return true;
+  const s = unsign<Session>((await cookies()).get(vaultCookie(v))?.value);
+  return Boolean(s && s.sub === v.id && s.exp > Date.now() && s.v === codeVersion(v.pinHash));
 }

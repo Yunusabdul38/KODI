@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { AREAS } from "@/lib/areas";
 import { PHOTOS, type PhotoKey } from "@/lib/photos";
-import { addUnit, handedOver, landlordDispute, register, savePayout, signIn, type FormState } from "./actions";
+import { addUnit, answerVaultRequest, handedOver, landlordDispute, register, savePayout, signIn, type FormState } from "./actions";
 
 function Msg({ s }: { s: FormState }) {
   if (!s?.error && !s?.ok) return null;
@@ -288,6 +288,25 @@ export function HandoverButton({ depositId }: { depositId: string }) {
       <button type="button" className="btn btn-ghost !min-h-10 !py-1.5 text-[0.9rem]" disabled={pending} onClick={() => start(async () => setS(await handedOver(depositId)))}>
         {pending ? "Saving…" : "I've handed over the keys"}
       </button>
+      {s && <div className="mt-2"><Msg s={s} /></div>}
+    </div>
+  );
+}
+
+export function VaultRequestButtons({ vaultId }: { vaultId: string }) {
+  const [s, setS] = useState<FormState>(undefined);
+  const [pending, start] = useTransition();
+  const answer = (approve: boolean) => start(async () => setS(await answerVaultRequest(vaultId, approve)));
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="btn btn-primary !min-h-10 !py-1.5 text-[0.9rem]" disabled={pending} onClick={() => answer(true)}>
+          Yes, they live here
+        </button>
+        <button type="button" className="btn btn-ghost !min-h-10 !py-1.5 text-[0.9rem]" disabled={pending} onClick={() => answer(false)}>
+          Decline
+        </button>
+      </div>
       {s && <div className="mt-2"><Msg s={s} /></div>}
     </div>
   );

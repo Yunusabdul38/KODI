@@ -42,7 +42,15 @@ async function View({ params }: { params: PageProps<"/vault/top-up/[code]">["par
           <TopUpForm code={vault.code} presets={[10_000, 25_000, 50_000, 100_000]} network={network()} askName />
         </section>
       ) : (
-        <p className="mt-8 rounded-2xl bg-green-soft p-5">This vault has been paid to the landlord. Thank you for helping.</p>
+        <p className="mt-8 rounded-2xl bg-paper-2 p-5">
+          {{
+            pending: `This vault isn't open yet: the landlord still has to confirm that ${first} lives there.`,
+            declined: "This vault was closed before it opened, so it can't take money.",
+            paid: "This vault has been paid to the landlord. Thank you for helping.",
+            returned: "This vault is closed: the savings went back to the tenant.",
+            active: "",
+          }[vault.status]}
+        </p>
       )}
     </div>
   );
