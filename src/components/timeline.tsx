@@ -22,6 +22,7 @@ const TEXT: Record<string, string> = {
   vault_requested: "Asked the landlord to confirm the Rent Vault",
   vault_approved: "Landlord confirmed the tenant lives here: vault open",
   vault_declined: "Landlord declined the Rent Vault",
+  vault_closed_duplicate: "Closed: the home already had a Rent Vault",
   vault_topped_up: "Money added",
   vault_due: "Due date reached",
   vault_returned: "Savings returned to the tenant",

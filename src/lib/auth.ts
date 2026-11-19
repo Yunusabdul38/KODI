@@ -99,7 +99,7 @@ export async function unlockVault(v: Vault) {
 }
 
 export async function vaultUnlocked(v: Vault) {
-  if (!v.pinHash) return true;
+  if (!v.pinHash) return false;
   const s = unsign<Session>((await cookies()).get(vaultCookie(v))?.value);
   return Boolean(s && s.sub === v.id && s.exp > Date.now() && s.v === codeVersion(v.pinHash));
 }

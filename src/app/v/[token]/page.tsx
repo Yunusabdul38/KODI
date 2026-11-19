@@ -11,7 +11,7 @@ import { appUrl, emailEnabled } from "@/lib/notify";
 import { vaultUnlocked } from "@/lib/auth";
 import { landlordViewToken, tokenHash } from "@/lib/secrets";
 import { vaultView } from "@/lib/vaults";
-import { TopUpForm, VaultPinForm } from "../../vault/vault-forms";
+import { ChooseVaultPinForm, TopUpForm, VaultPinForm } from "../../vault/vault-forms";
 
 export const metadata = { title: "Your Rent Vault", robots: { index: false } };
 
@@ -28,6 +28,19 @@ async function TenantVault({ params }: { params: PageProps<"/v/[token]">["params
   const { token } = await params;
   const vault = await getVaultByToken(tokenHash(token));
   if (!vault) notFound();
+  if (!vault.pinHash) {
+    return (
+      <div className="container-page max-w-md py-14 md:py-20">
+        <p className="eyebrow">Your Rent Vault</p>
+        <h1 className="mt-3 text-[2.2rem]">Lock your vault with a PIN</h1>
+        <p className="mt-3 text-[1rem] text-ink-2">
+          Your private vault page now needs a PIN, so someone you forward the link to can&apos;t see your vault or its links.
+          Choose one to continue.
+        </p>
+        <div className="mt-8 rounded-[28px] border border-line bg-card p-6 sm:p-7"><ChooseVaultPinForm token={token} /></div>
+      </div>
+    );
+  }
   if (!(await vaultUnlocked(vault))) {
     return (
       <div className="container-page max-w-md py-14 md:py-20">

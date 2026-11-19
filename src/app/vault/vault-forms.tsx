@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatNaira } from "@/lib/format";
-import { createTopUp, createVault, enterVaultPin, type PinState, type TopUpState, type VaultFormState } from "./actions";
+import { chooseVaultPin, createTopUp, createVault, enterVaultPin, type PinState, type TopUpState, type VaultFormState } from "./actions";
 
 export interface VaultFromDeposit {
   token: string;
@@ -141,6 +141,22 @@ export function VaultPinForm({ token }: { token: string }) {
       </FormField>
       {state?.error && <p role="alert" className="rounded-2xl bg-clay-soft px-4 py-3 text-[0.95rem]">{state.error}</p>}
       <button type="submit" disabled={pending} className="btn btn-primary w-full">{pending ? "Checking…" : "Open my vault"}</button>
+    </form>
+  );
+}
+
+export function ChooseVaultPinForm({ token }: { token: string }) {
+  const [state, action, pending] = useActionState<PinState, FormData>(chooseVaultPin.bind(null, token), undefined);
+  return (
+    <form action={action} className="space-y-4">
+      <FormField label="Choose a 6-digit PIN" htmlFor="pin">
+        <PasswordInput id="pin" name="pin" inputMode="numeric" maxLength={6} autoComplete="new-password" required autoFocus />
+      </FormField>
+      <FormField label="Confirm the PIN" htmlFor="pinConfirm">
+        <PasswordInput id="pinConfirm" name="pinConfirm" inputMode="numeric" maxLength={6} autoComplete="new-password" required />
+      </FormField>
+      {state?.error && <p role="alert" className="rounded-2xl bg-clay-soft px-4 py-3 text-[0.95rem]">{state.error}</p>}
+      <button type="submit" disabled={pending} className="btn btn-primary w-full">{pending ? "Saving…" : "Lock my vault"}</button>
     </form>
   );
 }

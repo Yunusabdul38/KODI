@@ -166,6 +166,8 @@ export const createVault = (v: Omit<Vault, "id" | "closedAt" | "createdAt">) => 
 /** Answers a vault request; null when it was already answered. */
 export const decideVault = (id: string, status: "active" | "declined", approvedAt: string | null) =>
   update<Vault>("vaults", id, { status, approvedAt }, "and status = 'pending'");
+/** A vault opened before PINs existed sets its PIN once; null when it already has one. */
+export const setVaultPin = (id: string, pinHash: string) => update<Vault>("vaults", id, { pinHash }, "and pin_hash is null");
 /** Once a home's vault is open, any other request for that home is declined. */
 export const declineOtherVaultRequests = (unitId: string, keepId: string) =>
   q<Vault>("update vaults set status = 'declined' where unit_id = $1 and status = 'pending' and id <> $2 returning *", [unitId, keepId]);

@@ -149,6 +149,9 @@ async function main() {
   const releasedC = (await data.getDeposit(cHeld.id))!;
   const v = await vaults.startVault({ unit: unit3, tenantName: releasedC.tenantName, tenantEmail: releasedC.tenantEmail, ...terms, deposit: releasedC });
   check("a vault opened from the tenant's own deposit opens at once", v.vault.status === "active");
+  check("a vault's PIN is stored hashed", Boolean(v.vault.pinHash) && !v.vault.pinHash!.includes("135790"));
+  check("a PIN can't be replaced once set", (await data.setVaultPin(v.vault.id, "x:y")) === null);
+  check("the database refuses changing a vault's PIN", await rejects(db.query("update vaults set pin_hash = 'x:y' where id = $1", [v.vault.id]), /terms are fixed/));
   check("opening it declines other requests for the home", (await data.getVault(ask.vault.id))!.status === "declined");
   check("a home can't have a second Rent Vault", await rejects(vaults.startVault({ unit: unit3, tenantName: "Second", tenantEmail: "second@test.ng", ...terms }), /already has a Rent Vault/));
   check(

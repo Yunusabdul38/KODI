@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { unlockVault, vaultUnlocked } from "@/lib/auth";
 import { clientIp } from "@/lib/client-ip";
-import { getDepositByToken, getLandlord, getUnit, getUnitByCode, getVaultByCode, getVaultByToken } from "@/lib/data";
+import { getDepositByToken, getLandlord, getUnit, getUnitByCode, getVaultByCode, getVaultByToken, setVaultPin } from "@/lib/data";
 import { KodiError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
-import { tokenHash, verifySecret } from "@/lib/secrets";
+import { hashSecret, tokenHash, verifySecret } from "@/lib/secrets";
 import { startVault, topUp } from "@/lib/vaults";
 
 export type VaultFormState = { error?: string; errors?: Partial<Record<string, string>> };
@@ -77,6 +77,20 @@ export async function enterVaultPin(token: string, _: PinState, form: FormData):
   }
   if (!verifySecret(String(form.get("pin") ?? "").trim(), vault.pinHash)) return { error: "That PIN isn't right." };
   await unlockVault(vault);
+  redirect(`/v/${token}`);
+}
+
+/** A vault opened before PINs existed: the tenant chooses one before the page opens. */
+export async function chooseVaultPin(token: string, _: PinState, form: FormData): Promise<PinState> {
+  const vault = await getVaultByToken(tokenHash(token));
+  if (!vault) return { error: "This vault link isn't valid." };
+  if (vault.pinHash) return { error: "This vault already has a PIN." };
+  const pin = String(form.get("pin") ?? "").trim();
+  if (!/^\d{6}$/.test(pin)) return { error: "Choose 6 digits." };
+  if (pin !== String(form.get("pinConfirm") ?? "").trim()) return { error: "The two PINs don't match." };
+  const locked = await setVaultPin(vault.id, hashSecret(pin));
+  if (!locked) return { error: "This vault already has a PIN." };
+  await unlockVault(locked);
   redirect(`/v/${token}`);
 }
 
