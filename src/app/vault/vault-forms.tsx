@@ -5,7 +5,6 @@ import { useActionState, useState } from "react";
 import { ErrorFocus, FormField, invalid, keepValues, MoneyInput } from "@/components/form-controls";
 import { InvoicePanel, type Network } from "@/components/invoice-panel";
 import { Input } from "@/components/ui/input";
-import { PinInput } from "@/components/pin-input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatNaira } from "@/lib/format";
@@ -143,15 +142,15 @@ export function TopUpForm({
   );
 }
 
-/** One field for a new 6-digit PIN: digits only, shown as dots unless revealed. */
-function PinField(props: { id: string; name: string } & Record<string, unknown>) {
+/** One field for a 6-digit PIN: digits only, shown as dots unless revealed. `current` when entering an existing PIN. */
+function PinField({ current = false, ...props }: { id: string; name: string; current?: boolean } & Record<string, unknown>) {
   return (
     <PasswordInput
       {...props}
       inputMode="numeric"
       pattern="[0-9]*"
       maxLength={6}
-      autoComplete="new-password"
+      autoComplete={current ? "current-password" : "new-password"}
       placeholder="••••••"
       className="font-mono text-[1.05rem] tracking-[0.35em] placeholder:tracking-[0.35em]"
       onInput={(ev) => {
@@ -167,8 +166,8 @@ export function VaultPinForm({ token }: { token: string }) {
   const [tries, setTries] = useState(0);
   return (
     <form action={action} onSubmit={() => setTries((t) => t + 1)} className="space-y-5">
-      <FormField label="Your 6-digit PIN" htmlFor="pin-0" error={state?.error}>
-        <PinInput key={tries} id="pin" name="pin" autoFocus invalid={Boolean(state?.error)} />
+      <FormField label="Your 6-digit PIN" htmlFor="pin" error={state?.error}>
+        <PinField key={tries} id="pin" name="pin" current autoFocus {...invalid("pin", state?.error)} />
       </FormField>
       <button type="submit" disabled={pending} className="btn btn-primary w-full">{pending ? "Checking…" : "Open my vault"}</button>
     </form>
@@ -179,11 +178,11 @@ export function ChooseVaultPinForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<PinState, FormData>(chooseVaultPin.bind(null, token), undefined);
   return (
     <form action={action} className="space-y-5">
-      <FormField label="Choose a 6-digit PIN" htmlFor="pin-0">
-        <PinInput id="pin" name="pin" newPin autoFocus />
+      <FormField label="Choose a 6-digit PIN" htmlFor="pin">
+        <PinField id="pin" name="pin" autoFocus />
       </FormField>
-      <FormField label="Type it again" htmlFor="pinConfirm-0">
-        <PinInput id="pinConfirm" name="pinConfirm" newPin />
+      <FormField label="Type it again" htmlFor="pinConfirm">
+        <PinField id="pinConfirm" name="pinConfirm" />
       </FormField>
       {state?.error && <p role="alert" className="rounded-2xl bg-clay-soft px-4 py-3 text-[0.95rem]">{state.error}</p>}
       <button type="submit" disabled={pending} className="btn btn-primary w-full">{pending ? "Saving…" : "Lock my vault"}</button>
