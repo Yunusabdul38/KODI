@@ -109,7 +109,7 @@ it returns must be `https` on a public IP.
 | Arbiter | `ADMIN_PASSWORD` | Verify landlords, decide disputes, freeze listings, resolve payouts, return vault savings. |
 
 Sessions are signed, httpOnly, SameSite=Lax cookies (8 hours); changing a password signs out other
-sessions. Sign-ins are rate-limited per IP and per account, and a wrong email takes as long as a wrong code.
+sessions. Sign-ins are rate-limited per IP and per account, and a wrong email takes as long as a wrong password.
 The site sends a strict Content-Security-Policy, HSTS, `nosniff` and `X-Frame-Options: DENY`; user text is
 always rendered as text. The public unit check (`/api/units/KD-…`) returns no names, addresses or amounts.
 

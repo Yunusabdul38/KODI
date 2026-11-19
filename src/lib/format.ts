@@ -18,14 +18,14 @@ const tight = (label: string) => [...label].length === 1;
 
 const numFmt = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 /** "₦500,000", "KSh 2,000", "EGP 5,000": whole units, in the campaign's currency. */
-export function formatMoney(amount: number, currency: string) {
+function formatMoney(amount: number, currency: string) {
   const label = currencySymbol(currency);
   const n = Math.round(amount);
   const body = numFmt.format(Math.abs(n));
   return `${n < 0 ? "−" : ""}${label}${tight(label) ? "" : " "}${body}`;
 }
 /** The currency's symbol (or code) alone, for input prefixes. */
-export function currencySymbol(currency: string) {
+function currencySymbol(currency: string) {
   const code = currency.toUpperCase();
   return SYMBOLS[code] ?? code;
 }
@@ -48,7 +48,7 @@ function timeAgo(iso: string) {
   return rtf.format(Math.round(diff / 86400), "day");
 }
 
-export function formatDate(iso: string) {
+function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",

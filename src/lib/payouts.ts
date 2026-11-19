@@ -17,7 +17,7 @@ import type { Payout, PayoutMethod } from "./types";
  * shows on the admin page: freeing it wrongly could pay someone twice.
  */
 
-export const TEST_WALLET_LABEL: Record<TestWallet, string> = {
+const TEST_WALLET_LABEL: Record<TestWallet, string> = {
   landlord: "Landlord test wallet (Mutinynet)",
   agent: "Agent test wallet (Mutinynet)",
   tenant: "Tenant test wallet (Mutinynet)",

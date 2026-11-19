@@ -57,7 +57,7 @@ async function postgres(url: string): Promise<Engine> {
  * example after `npm run wallet`) switches ledgers instead of wiping anything,
  * and switching back brings the old data back.
  */
-export function localLedgerName() {
+function localLedgerName() {
   const key = process.env.NWC_URL?.match(/^nostr\+walletconnect:\/\/([0-9a-f]{64})/)?.[1];
   return key ? `ledger-${key.slice(0, 12)}` : "ledger-demo";
 }
@@ -101,7 +101,7 @@ async function open(): Promise<Engine> {
   if (!url) {
     const [{ n }] = await db.query<{ n: number }>("select count(*)::int as n from landlords");
     // Starts empty: landlords register themselves. SAMPLE_DATA=true (the e2e
-    // suite) loads sample data; sample payments only with the simulated wallet.
+    // suite) loads sample landlords and homes, never payments.
     if (n === 0 && process.env.SAMPLE_DATA === "true") {
       await (await import("./seed")).seedInto(db);
     }

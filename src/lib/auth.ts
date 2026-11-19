@@ -21,7 +21,7 @@ const codeVersion = (accessCodeHash: string) =>
   createHash("sha256").update(accessCodeHash).digest("base64url").slice(0, 16);
 
 // Compared against when the email is unknown, so a wrong email takes as long
-// as a wrong code and response times don't reveal which emails have accounts.
+// as a wrong password and response times don't reveal which emails have accounts.
 const DUMMY_HASH = "00000000000000000000000000000000:" + "0".repeat(64);
 
 const cookieOpts = {
@@ -40,7 +40,7 @@ export async function signInLandlord(email: string, code: string) {
   return true;
 }
 
-export async function startLandlordSession(l: Landlord) {
+async function startLandlordSession(l: Landlord) {
   const session: Session = { sub: l.id, email: l.email, v: codeVersion(l.accessCodeHash), exp: Date.now() + MAX_AGE * 1000 };
   (await cookies()).set(LANDLORD_COOKIE, sign(session), cookieOpts);
 }

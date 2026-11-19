@@ -10,8 +10,6 @@ const UNIT: Record<UnitStatus, { label: string; cls: string; dot: string }> = {
   unlisted: { label: "Not listed", cls: "bg-sand text-ink-3", dot: "bg-ink-3" },
 };
 
-export const unitStatusLabel = (s: UnitStatus) => UNIT[s].label;
-
 export function UnitStatusBadge({ status, className }: { status: UnitStatus; className?: string }) {
   const u = UNIT[status];
   return (

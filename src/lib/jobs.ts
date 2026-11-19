@@ -6,7 +6,7 @@ import { sendEmail } from "./notify";
 import { payDueVaults } from "./vaults";
 
 /** Compares the wallet with the ledger and records it; alerts the admin on a shortfall. */
-export async function takeReserveSnapshot() {
+async function takeReserveSnapshot() {
   const [wallet, ledger] = await Promise.all([lightning().getBalanceSats(), ledgerTotalSats()]);
   const snap = await addSnapshot({ walletBalanceSats: wallet, ledgerTotalSats: ledger, differenceSats: wallet - ledger });
   if (snap.differenceSats < 0) {

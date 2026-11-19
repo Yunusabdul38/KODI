@@ -23,7 +23,7 @@ export function lightning(): LightningProvider {
  * misconfiguration, never silently "demo" (which would let the simulate
  * endpoint mark donations paid and skip Lightning address checks).
  */
-export function walletKind(): LightningProvider["kind"] {
+function walletKind(): LightningProvider["kind"] {
   return lightning().kind;
 }
 

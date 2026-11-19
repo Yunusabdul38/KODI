@@ -78,7 +78,7 @@ export async function getRate(currency: string): Promise<Rate> {
  * Lagos rent (₦2.4m is about 2.6 million sats) fits in the faucet's free
  * test coins. Naira amounts stay real; the UI says so wherever it shows sats.
  */
-export const TEST_SCALE = 1000;
+const TEST_SCALE = 1000;
 
 export interface NgnPricing {
   /** Naira per bitcoin used for this payment (scaled on the test network). */

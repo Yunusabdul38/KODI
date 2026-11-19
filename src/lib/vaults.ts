@@ -231,7 +231,7 @@ export async function settleVaultPayment(p: VaultPayment): Promise<VaultPayment>
 }
 
 /** On the due date the vault pays the landlord everything saved. */
-export async function payVault(vault: Vault, by: { role: "system" | "admin" }) {
+async function payVault(vault: Vault, by: { role: "system" | "admin" }) {
   if (vault.status !== "active") return null;
   const unit = (await getUnit(vault.unitId))!;
   const landlord = (await getLandlord(unit.landlordId))!;

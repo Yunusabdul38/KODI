@@ -5,7 +5,7 @@ import { hashSecret } from "./secrets";
 /**
  * Sample landlords and units for the automated tests (SAMPLE_DATA=true with
  * the local database). No payments: every sat on Kodi's ledger is a real
- * (test) payment. Sample landlords sign in with the code "kodi-demo".
+ * (test) payment. Sample landlords sign in with the password "kodi-demo".
  */
 export async function seedInto(db: Sql) {
   const code = hashSecret("kodi-demo");

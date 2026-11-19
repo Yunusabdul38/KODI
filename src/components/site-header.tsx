@@ -4,7 +4,7 @@ import { network } from "@/lib/lightning";
 import { SiteNav } from "./site-nav";
 
 /** Kodi's mark: a house whose door is a keyhole. No keys, no payout. */
-export function LogoMark({ size = 30 }: { size?: number }) {
+function LogoMark({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
       <rect width="32" height="32" rx="9" fill="var(--forest)" />

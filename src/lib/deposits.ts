@@ -25,10 +25,10 @@ import { KodiError, UnitLockedError } from "./errors";
 import type { Deposit, Dispute, Landlord, PayoutMethod, Unit } from "./types";
 import { settleVaultPayment } from "./vaults";
 
-export { KodiError, UnitLockedError };
+export { KodiError };
 
 const INVOICE_MINUTES = 15;
-export const MAX_MONTHS = 12; // Lagos State Tenancy Law 2011, s.4: at most a year's rent from a new tenant
+const MAX_MONTHS = 12; // Lagos State Tenancy Law 2011, s.4: at most a year's rent from a new tenant
 
 const preimageMatches = (preimage: string, hash: string) =>
   createHash("sha256").update(Buffer.from(preimage, "hex")).digest("hex") === hash;
@@ -233,7 +233,7 @@ export async function releaseDeposit(d: Deposit, by: { role: "tenant" | "admin";
 }
 
 /** Writes and sends the landlord's and agent's payouts for a released deposit. */
-export async function payShares(d: Deposit) {
+async function payShares(d: Deposit) {
   const unit = (await getUnit(d.unitId))!;
   const landlord = (await getLandlord(unit.landlordId))!;
   const memo = `Kodi: ${unit.code} rent from ${d.tenantName}`;
@@ -335,7 +335,7 @@ export async function openDispute(d: Deposit, by: { role: "tenant" | "landlord";
   return disputed;
 }
 
-export async function refundDeposit(d: Deposit, by: { role: "system" | "admin"; actor: string | null; note?: string }) {
+async function refundDeposit(d: Deposit, by: { role: "system" | "admin"; actor: string | null; note?: string }) {
   const t = await now();
   const refunded = await moveDeposit(d.id, ["refund_requested", "disputed"], { status: "refunded", closedAt: t.toISOString() });
   if (!refunded) throw new KodiError("This deposit has already been settled.");
@@ -396,4 +396,3 @@ export async function maybeRefundNow(d: Deposit) {
   return d;
 }
 
-export { openDisputeFor };
