@@ -273,14 +273,18 @@ try {
   step = "vault";
   await a.page.goto(depositA, { waitUntil: "networkidle" });
   await a.page.click("a:has-text('Start a Rent Vault')");
-  await a.page.waitForSelector("#pinConfirm", { timeout: 15000 });
+  await a.page.waitForSelector("#pinConfirm-0", { timeout: 15000 });
   check("a vault opened from the deposit knows the tenant", (await a.page.inputValue("#tenantName")) === "Ada Obi");
   const minDue = await a.page.getAttribute("#dueDate", "min");
+  const typePin = async (page, id, pin) => {
+    await page.click(`#${id}-0`);
+    await page.keyboard.type(pin);
+  };
   const fillVault = async (page, pin, days = 60) => {
     await page.fill("#targetNgn", "2400000");
     await page.fill("#dueDate", addDays(minDue, days));
-    await page.fill("#pin", pin);
-    await page.fill("#pinConfirm", pin);
+    await typePin(page, "pin", pin);
+    await typePin(page, "pinConfirm", pin);
   };
   await fillVault(a.page, "482916");
   await a.page.click("button:has-text('Open my Rent Vault')");
@@ -314,11 +318,12 @@ try {
     "a forwarded private vault link shows only the PIN screen",
     (await fwd.page.locator("text=Enter your PIN").count()) === 1 && (await fwd.page.locator("text=/vault/top-up/").count()) === 0,
   );
-  await fwd.page.fill("#pin", "111111");
+  await typePin(fwd.page, "pin", "111111");
   await fwd.page.click("button:has-text('Open my vault')");
   await fwd.page.waitForSelector("text=That PIN isn't right.", { timeout: 10000 });
   check("a wrong vault PIN is refused", true);
-  await fwd.page.fill("#pin", "482916");
+  check("a wrong PIN clears the boxes for another try", (await fwd.page.inputValue("#pin-0")) === "");
+  await typePin(fwd.page, "pin", "482916");
   await fwd.page.click("button:has-text('Open my vault')");
   await fwd.page.waitForSelector("h2:text-is('Add money')", { timeout: 15000 });
   check("the right PIN opens the vault", true);

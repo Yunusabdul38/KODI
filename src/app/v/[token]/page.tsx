@@ -1,3 +1,4 @@
+import { LockKeyholeIcon, ShieldCheckIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -30,27 +31,16 @@ async function TenantVault({ params }: { params: PageProps<"/v/[token]">["params
   if (!vault) notFound();
   if (!vault.pinHash) {
     return (
-      <div className="container-page max-w-md py-14 md:py-20">
-        <p className="eyebrow">Your Rent Vault</p>
-        <h1 className="mt-3 text-[2.2rem]">Lock your vault with a PIN</h1>
-        <p className="mt-3 text-[1rem] text-ink-2">
-          Your private vault page now needs a PIN, so someone you forward the link to can&apos;t see your vault or its links.
-          Choose one to continue.
-        </p>
-        <div className="mt-8 rounded-[28px] border border-line bg-card p-6 sm:p-7"><ChooseVaultPinForm token={token} /></div>
-      </div>
+      <VaultLock code={vault.code} title="Set a PIN for your vault" text="Your private vault page now opens with a PIN, so anyone you forward the link to can't see your savings or its links. Choose one to continue.">
+        <ChooseVaultPinForm token={token} />
+      </VaultLock>
     );
   }
   if (!(await vaultUnlocked(vault))) {
     return (
-      <div className="container-page max-w-md py-14 md:py-20">
-        <p className="eyebrow">Your Rent Vault</p>
-        <h1 className="mt-3 text-[2.2rem]">Enter your PIN</h1>
-        <p className="mt-3 text-[1rem] text-ink-2">
-          This private page is locked with the 6-digit PIN you chose when you opened the vault. Someone with only the link sees nothing.
-        </p>
-        <div className="mt-8 rounded-[28px] border border-line bg-card p-6 sm:p-7"><VaultPinForm token={token} /></div>
-      </div>
+      <VaultLock code={vault.code} title="Enter your PIN" text="This private page is locked with the 6-digit PIN you chose when you opened the vault.">
+        <VaultPinForm token={token} />
+      </VaultLock>
     );
   }
   const v = await vaultView(vault);
@@ -124,6 +114,30 @@ async function TenantVault({ params }: { params: PageProps<"/v/[token]">["params
             </div>
           </section>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** The locked state of the private vault page: nothing about the vault shows but its code. */
+function VaultLock({ code, title, text, children }: { code: string; title: string; text: string; children: React.ReactNode }) {
+  return (
+    <div className="container-page flex min-h-[70vh] items-center justify-center py-12 md:py-16">
+      <div className="w-full max-w-[27rem] rounded-[32px] border border-line bg-card p-6 shadow-[0_40px_80px_-50px_rgba(20,33,27,0.55)] sm:p-9">
+        <div className="flex items-center justify-between">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-forest text-paper">
+            <LockKeyholeIcon className="size-6" aria-hidden />
+          </span>
+          <span className="code-chip">{code}</span>
+        </div>
+        <p className="eyebrow mt-7">Your Rent Vault</p>
+        <h1 className="mt-2 text-[1.9rem] leading-tight tracking-[-0.03em]">{title}</h1>
+        <p className="mt-2 text-[0.97rem] leading-relaxed text-ink-2">{text}</p>
+        <div className="mt-7">{children}</div>
+        <p className="mt-6 flex items-start gap-2 border-t border-line pt-5 text-[0.85rem] text-ink-3">
+          <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-green" aria-hidden />
+          Only you should know this PIN. Kodi never asks for it, and five wrong tries lock the page for 15 minutes.
+        </p>
       </div>
     </div>
   );

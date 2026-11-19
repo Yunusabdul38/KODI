@@ -1,10 +1,11 @@
 "use client";
 
+import { LockKeyholeIcon } from "lucide-react";
 import { useActionState, useState } from "react";
 import { ErrorFocus, FormField, invalid, keepValues, MoneyInput } from "@/components/form-controls";
 import { InvoicePanel, type Network } from "@/components/invoice-panel";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
+import { PinInput } from "@/components/pin-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatNaira } from "@/lib/format";
 import { chooseVaultPin, createTopUp, createVault, enterVaultPin, type PinState, type TopUpState, type VaultFormState } from "./actions";
@@ -54,12 +55,19 @@ export function StartVaultForm({ unitCode, minDate, maxDate, fromDeposit }: { un
           ))}
         </RadioGroup>
       </fieldset>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <FormField label="Choose a 6-digit PIN" htmlFor="pin" error={e.pin} hint="It opens your private vault page.">
-          <PasswordInput id="pin" name="pin" inputMode="numeric" maxLength={6} autoComplete="new-password" {...invalid("pin", e.pin)} />
+      <div className="space-y-5 rounded-[22px] border border-line bg-paper-2/60 p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-forest text-paper"><LockKeyholeIcon className="size-5" aria-hidden /></span>
+          <div>
+            <p className="font-semibold">Lock your vault with a PIN</p>
+            <p className="text-[0.88rem] text-ink-2">Your private vault page opens only with this PIN, even if someone else gets the link.</p>
+          </div>
+        </div>
+        <FormField label="Choose a 6-digit PIN" htmlFor="pin-0" error={e.pin}>
+          <PinInput id="pin" name="pin" newPin invalid={Boolean(e.pin)} />
         </FormField>
-        <FormField label="Confirm the PIN" htmlFor="pinConfirm" error={e.pinConfirm}>
-          <PasswordInput id="pinConfirm" name="pinConfirm" inputMode="numeric" maxLength={6} autoComplete="new-password" {...invalid("pinConfirm", e.pinConfirm)} />
+        <FormField label="Type it again" htmlFor="pinConfirm-0" error={e.pinConfirm}>
+          <PinInput id="pinConfirm" name="pinConfirm" newPin invalid={Boolean(e.pinConfirm)} />
         </FormField>
       </div>
       <p className="rounded-2xl bg-paper-2 px-4 py-3 text-[0.9rem] text-ink-2">
@@ -134,12 +142,12 @@ export function TopUpForm({
 
 export function VaultPinForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<PinState, FormData>(enterVaultPin.bind(null, token), undefined);
+  const [tries, setTries] = useState(0);
   return (
-    <form action={action} className="space-y-4">
-      <FormField label="Your 6-digit PIN" htmlFor="pin">
-        <PasswordInput id="pin" name="pin" inputMode="numeric" maxLength={6} autoComplete="current-password" required autoFocus />
+    <form action={action} onSubmit={() => setTries((t) => t + 1)} className="space-y-5">
+      <FormField label="Your 6-digit PIN" htmlFor="pin-0" error={state?.error}>
+        <PinInput key={tries} id="pin" name="pin" autoFocus invalid={Boolean(state?.error)} />
       </FormField>
-      {state?.error && <p role="alert" className="rounded-2xl bg-clay-soft px-4 py-3 text-[0.95rem]">{state.error}</p>}
       <button type="submit" disabled={pending} className="btn btn-primary w-full">{pending ? "Checking…" : "Open my vault"}</button>
     </form>
   );
@@ -148,12 +156,12 @@ export function VaultPinForm({ token }: { token: string }) {
 export function ChooseVaultPinForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<PinState, FormData>(chooseVaultPin.bind(null, token), undefined);
   return (
-    <form action={action} className="space-y-4">
-      <FormField label="Choose a 6-digit PIN" htmlFor="pin">
-        <PasswordInput id="pin" name="pin" inputMode="numeric" maxLength={6} autoComplete="new-password" required autoFocus />
+    <form action={action} className="space-y-5">
+      <FormField label="Choose a 6-digit PIN" htmlFor="pin-0">
+        <PinInput id="pin" name="pin" newPin autoFocus />
       </FormField>
-      <FormField label="Confirm the PIN" htmlFor="pinConfirm">
-        <PasswordInput id="pinConfirm" name="pinConfirm" inputMode="numeric" maxLength={6} autoComplete="new-password" required />
+      <FormField label="Type it again" htmlFor="pinConfirm-0">
+        <PinInput id="pinConfirm" name="pinConfirm" newPin />
       </FormField>
       {state?.error && <p role="alert" className="rounded-2xl bg-clay-soft px-4 py-3 text-[0.95rem]">{state.error}</p>}
       <button type="submit" disabled={pending} className="btn btn-primary w-full">{pending ? "Saving…" : "Lock my vault"}</button>
