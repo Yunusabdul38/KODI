@@ -178,6 +178,9 @@ try {
   // ----------------------------------------------- Safe Deposit: the lock
   step = "deposit";
   const b = await session();
+  // B opened the page before A paid: hold B's live updates until B submits, or
+  // the page can refresh itself to "reserved" before the test fills it in.
+  await b.page.route("**/api/changes**", (r) => r.fulfill({ json: { marker: "held-for-test" } }));
   await go(b.page, "/homes/KD-YABA2"); // B opens the same home before A pays
   await go(a.page, "/homes/KD-YABA2");
   check("the deposit total is a year's rent plus the agent fee", (await a.page.locator("text=₦2,640,000").count()) >= 1);
@@ -196,6 +199,7 @@ try {
   await b.page.waitForSelector("text=already has a deposit held on Kodi", { timeout: 15000 });
   check("tenant B is refused while A is paying: the home is locked", true);
   check("B is not sent to a payment page", !/\/d\//.test(b.page.url()));
+  await b.page.unroute("**/api/changes**");
 
   await simulate(a.page);
   await a.page.waitForSelector("text=Your money is held. The home is locked.", { timeout: 15000 });
